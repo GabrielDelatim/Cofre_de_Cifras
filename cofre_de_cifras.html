@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f5f6f8">
+<meta name="description" content="Ferramenta local para criptografar e descriptografar textos no navegador.">
+<title>Cofre de cifras</title>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f1f3f6;
+  --surface: #ffffff;
+  --surface-soft: #f7f8fa;
+  --ink: #171a21;
+  --muted: #667080;
+  --line: #dfe3e9;
+  --line-strong: #cbd2dc;
+  --accent: #344c72;
+  --accent-hover: #263c5e;
+  --accent-soft: #edf1f7;
+  --accent-ink: #ffffff;
+  --warn: #a76519;
+  --error: #b33b42;
+  --success: #287653;
+  --shadow: 0 18px 50px rgba(25, 35, 52, .055);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #101319;
+    --surface: #181d25;
+    --surface-soft: #202631;
+    --ink: #edf0f5;
+    --muted: #9ca6b5;
+    --line: #2b3441;
+    --line-strong: #3a4554;
+    --accent: #a9bad7;
+    --accent-hover: #c4d1e6;
+    --accent-soft: #293548;
+    --accent-ink: #101722;
+    --warn: #e6b56d;
+    --error: #f08b91;
+    --success: #7ac49e;
+    --shadow: 0 18px 50px rgba(0, 0, 0, .18);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #101319;
+  --surface: #181d25;
+  --surface-soft: #202631;
+  --ink: #edf0f5;
+  --muted: #9ca6b5;
+  --line: #2b3441;
+  --line-strong: #3a4554;
+  --accent: #a9bad7;
+  --accent-hover: #c4d1e6;
+  --accent-soft: #293548;
+  --accent-ink: #101722;
+  --warn: #e6b56d;
+  --error: #f08b91;
+  --success: #7ac49e;
+  --shadow: 0 18px 50px rgba(0, 0, 0, .18);
+}
+:root[data-theme="light"] { color-scheme: light; }
+* { box-sizing: border-box; }
+html { scroll-padding-top: 24px; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  padding: max(28px, env(safe-area-inset-top)) 18px max(32px, env(safe-area-inset-bottom));
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.6 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+button, input, select, textarea { font: inherit; }
+button, select { -webkit-tap-highlight-color: transparent; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 38%, transparent);
+  outline-offset: 2px;
+}
+main { width: min(100%, 980px); margin: 0 auto; display: grid; gap: 24px; }
+.topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+.brand { display: grid; gap: 5px; }
+.eyebrow { margin: 0; color: var(--muted); font-size: .72rem; font-weight: 700; letter-spacing: .15em; text-transform: uppercase; }
+h1 { margin: 0; font-size: clamp(2rem, 5vw, 2.7rem); font-weight: 650; letter-spacing: -.055em; line-height: 1.12; }
+.subtitle { margin: 7px 0 0; color: var(--muted); font-size: .96rem; }
+.theme-toggle { flex: 0 0 auto; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--muted); padding: 8px 12px; cursor: pointer; font-size: .82rem; font-weight: 600; }
+.theme-toggle:hover { color: var(--ink); border-color: var(--line-strong); }
+.panel { padding: 22px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); box-shadow: var(--shadow); }
+.operation-wrap { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+.seg { display: inline-grid; grid-template-columns: 1fr 1fr; width: min(100%, 380px); padding: 4px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-soft); }
+.seg button { border: 0; border-radius: 999px; background: transparent; color: var(--muted); padding: 9px 16px; font-weight: 650; cursor: pointer; transition: background .16s ease, color .16s ease, box-shadow .16s ease; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 5px rgba(15, 23, 42, .10); }
+.section-label { display: block; margin: 0 0 8px; color: var(--muted); font-size: .76rem; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+select, input, textarea {
+  width: 100%; min-width: 0; border: 1px solid var(--line-strong); border-radius: 11px;
+  background: var(--surface); color: var(--ink); padding: 12px 14px;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+select { cursor: pointer; }
+select:hover, input:hover, textarea:hover { border-color: var(--muted); }
+input::placeholder, textarea::placeholder { color: color-mix(in srgb, var(--muted) 72%, transparent); }
+textarea { min-height: 210px; resize: vertical; line-height: 1.55; }
+.mono, textarea.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .83rem; }
+.method-select { max-width: 100%; }
+.method-heading { display: flex; justify-content: space-between; align-items: center; gap: 14px; }
+.method-heading .section-label { margin-bottom: 8px; }
+.description-label { color: color-mix(in srgb, var(--muted) 82%, var(--surface)); font-weight: 650; }
+.method-name { color: var(--muted); font-size: .78rem; text-align: right; }
+
+.info { margin-top: 14px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface-soft); overflow: hidden; }
+.info summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; cursor: pointer; list-style: none; user-select: none; }
+.info summary::-webkit-details-marker { display: none; }
+.info summary:hover { background: color-mix(in srgb, var(--accent-soft) 52%, transparent); }
+.summary-main { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.summary-main strong { font-size: .94rem; font-weight: 700; }
+.chevron { width: 17px; height: 17px; flex: 0 0 auto; color: var(--muted); transition: transform .18s ease; }
+.info[open] .chevron { transform: rotate(180deg); }
+.meter { display: inline-flex; align-items: center; justify-content: flex-end; gap: 8px; color: var(--muted); font-size: .76rem; white-space: nowrap; }
+.bars { display: inline-flex; gap: 3px; }
+.bars i { display: block; width: 15px; height: 4px; border-radius: 3px; background: var(--line-strong); }
+.bars i.on { background: var(--success); }
+.bars.weak i.on { background: var(--warn); }
+.info-content { display: grid; gap: 12px; padding: 0 16px 16px; color: var(--muted); font-size: .88rem; }
+.info-content p { margin: 0; }
+.info-content b { color: var(--ink); font-weight: 650; }
+.config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.config-block { min-width: 0; }
+.field { display: flex; align-items: stretch; gap: 8px; }
+.field input { flex: 1 1 auto; }
+.text-action { flex: 0 0 auto; border: 0; padding: 0 8px; border-radius: 8px; background: transparent; color: var(--accent); font-size: .83rem; font-weight: 700; cursor: pointer; }
+.text-action:hover { background: var(--accent-soft); }
+.hint { min-height: 1.25em; margin: 7px 0 0; color: var(--muted); font-size: .78rem; }
+.security-note { margin-top: 12px; padding: 11px 13px; border-radius: 10px; background: var(--accent-soft); color: var(--muted); font-size: .8rem; }
+.security-note strong { color: var(--ink); }
+.kdf-details { margin-top: 12px; }
+.kdf-details .kdf-explainer { font-size: .84rem; line-height: 1.6; }
+.kdf-explainer h3 { margin: 0 0 6px; color: var(--ink); font-size: .88rem; font-weight: 700; letter-spacing: -.01em; }
+.kdf-explainer p { margin: 0; }
+.kdf-explainer p + p { margin-top: 7px; }
+.kdf-explainer strong { color: var(--ink); font-weight: 650; }
+.kdf-note { margin-top: 9px !important; font-size: .75rem; }
+.pem-area { min-height: 118px; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }
+.pair textarea { min-height: 130px; font-size: .72rem; }
+.pair-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 7px; }
+.pair-head .section-label { margin: 0; }
+.private-label { color: var(--warn); }
+.io { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.io-col { min-width: 0; }
+.out { min-height: 210px; padding: 13px 14px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-soft); white-space: pre-wrap; overflow-wrap: anywhere; font: .83rem/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.out:empty::before { content: "O resultado aparecerá aqui"; color: var(--muted); font-family: inherit; }
+.out.err { color: var(--error); font-family: inherit; font-size: .9rem; overflow-wrap: normal; }
+.out.pending { color: var(--muted); font-family: inherit; font-size: .9rem; }
+.actions { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.btn { min-height: 42px; padding: 10px 16px; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--surface); color: var(--ink); font-size: .86rem; font-weight: 700; cursor: pointer; transition: transform .12s ease, background .15s ease, border-color .15s ease; }
+.btn:hover:not(:disabled) { border-color: var(--muted); background: var(--surface-soft); }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn.primary { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+.btn.primary:hover:not(:disabled) { border-color: var(--accent-hover); background: var(--accent-hover); }
+.btn:disabled { opacity: .42; cursor: not-allowed; }
+.btn.subtle { border-color: transparent; background: transparent; color: var(--muted); }
+.btn.subtle:hover:not(:disabled) { background: var(--surface-soft); color: var(--ink); }
+.status { min-height: 1.25em; margin: 0; color: var(--muted); font-size: .78rem; }
+footer { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; color: var(--muted); font-size: .78rem; }
+.warn { color: var(--warn); }
+[hidden] { display: none !important; }
+@media (max-width: 700px) {
+  body { padding: 24px 13px max(24px, env(safe-area-inset-bottom)); }
+  main { gap: 17px; }
+  .panel { padding: 17px; border-radius: 15px; }
+  .topbar { align-items: center; }
+  .config-grid, .io, .pair { grid-template-columns: 1fr; }
+  textarea, .out { min-height: 170px; }
+  .info summary { align-items: flex-start; }
+  .method-heading { align-items: center; }
+  .method-heading .meter { font-size: .7rem; }
+  .meter { gap: 6px; font-size: .7rem; }
+  .bars i { width: 11px; }
+  .operation-wrap { align-items: stretch; }
+  .seg { max-width: none; }
+  .theme-toggle { padding: 7px 10px; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; } }
+</style>
+</head>
+<body>
+<main>
+  <header class="topbar">
+    <div class="brand">
+      <p class="eyebrow">Ferramenta local</p>
+      <h1>Cofre de cifras</h1>
+      <p class="subtitle">Proteja ou revele mensagens diretamente no seu navegador.</p>
+    </div>
+    <button class="theme-toggle" id="themeToggle" type="button" aria-label="Alternar tema">Tema escuro</button>
+  </header>
+
+  <section class="panel operation-wrap" aria-label="Operação">
+    <div>
+      <span class="section-label">Operação</span>
+      <div class="seg" role="group" aria-label="Escolha a operação">
+        <button id="mE" type="button" aria-pressed="true">Criptografar</button>
+        <button id="mD" type="button" aria-pressed="false">Descriptografar</button>
+      </div>
+    </div>
+    <p class="status" id="status" role="status" aria-live="polite"></p>
+  </section>
+
+  <section class="panel" aria-labelledby="methodLabel">
+    <div class="method-heading">
+      <label class="section-label" id="methodLabel" for="type">Método de proteção</label>
+      <span class="meter" aria-live="polite">Segurança <span class="bars" id="bars"><i></i><i></i><i></i></span> <span id="lvl"></span></span>
+    </div>
+    <select class="method-select" id="type"></select>
+
+    <details class="info" id="methodDetails">
+      <summary aria-label="Mostrar ou ocultar a descrição do método">
+        <span class="summary-main">
+          <strong class="description-label">Descrição</strong>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 9 6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="method-name" id="name"></span>
+      </summary>
+      <div class="info-content">
+        <p id="about"></p>
+        <p><b>Como funciona.</b> <span id="how"></span></p>
+        <p><b>Quando usar.</b> <span id="use"></span></p>
+      </div>
+    </details>
+  </section>
+
+
+  <section class="panel io" aria-label="Texto e resultado">
+    <div class="io-col">
+      <label class="section-label" for="inp">Texto de entrada</label>
+      <textarea id="inp" placeholder="Digite ou cole sua mensagem aqui…" spellcheck="false"></textarea>
+    </div>
+    <div class="io-col">
+      <span class="section-label" id="resultLabel">Resultado</span>
+      <div class="out" id="out" role="region" aria-labelledby="resultLabel" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section class="panel" aria-label="Configurações de chave">
+    <div class="config-grid">
+      <div class="config-block" id="keyBox">
+        <label class="section-label" for="key" id="keyLabel">Senha</label>
+        <div class="field">
+          <input id="key" type="password" autocomplete="off" autocapitalize="off" spellcheck="false">
+          <button class="text-action" id="eye" type="button">Mostrar</button>
+          <button class="text-action" id="gen" type="button">Gerar senha</button>
+        </div>
+        <p class="hint" id="keyHint"></p>
+      </div>
+
+      <div class="config-block" id="kdfBox" hidden>
+        <div id="kdfProfileBox">
+          <label class="section-label" for="kdfProfile">Custo da derivação</label>
+          <select id="kdfProfile">
+            <option value="600000">Recomendado · 600.000 iterações</option>
+            <option value="1200000">Reforçado · 1.200.000 iterações</option>
+            <option value="2000000">Máximo · 2.000.000 iterações</option>
+          </select>
+          <p class="hint">O nível escolhido é registrado no conteúdo cifrado e identificado automaticamente na descriptografia.</p>
+        </div>
+        <details class="info kdf-details">
+          <summary aria-label="Mostrar ou ocultar a explicação sobre derivação de chave">
+            <span class="description-label">O que é derivação de chave?</span>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 9 6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </summary>
+          <div class="info-content kdf-explainer">
+            <p>É o processo que transforma sua senha em uma chave criptográfica de 256 bits, adequada para o AES. Em vez de usar a senha diretamente, o sistema aplica <strong>PBKDF2 com SHA-256</strong> repetidas vezes.</p>
+            <p><strong>Salt aleatório:</strong> um dado criado a cada criptografia. Ele não é secreto; serve para que a mesma senha gere chaves diferentes em operações distintas.</p>
+            <p><strong>Iterações:</strong> são as repetições do cálculo. Quanto maior o número, mais trabalhoso fica testar senhas em ataques de tentativa e erro — e um pouco mais demorado fica criptografar e descriptografar.</p>
+            <p class="kdf-note">O salt e o perfil de iterações acompanham o texto cifrado. Eles não revelam sua senha. Na descriptografia, são usados para recriar a mesma chave.</p>
+          </div>
+        </details>
+      </div>
+    </div>
+
+    <div id="pemBox" hidden>
+      <div class="config-grid">
+        <div class="config-block">
+          <label class="section-label" for="pem" id="pemLabel">Chave pública do destinatário</label>
+          <textarea id="pem" class="mono pem-area" spellcheck="false" placeholder="-----BEGIN PUBLIC KEY-----"></textarea>
+        </div>
+        <div class="config-block" id="rsaConfig">
+          <label class="section-label" for="rsaSize">Tamanho do par RSA</label>
+          <select id="rsaSize">
+            <option value="3072">3072 bits · recomendado</option>
+            <option value="4096">4096 bits · reforçado</option>
+          </select>
+          <p class="hint">A seleção é aplicada ao gerar um novo par de chaves.</p>
+          <button class="btn" id="mk" type="button" style="margin-top:10px">Gerar par de chaves</button>
+        </div>
+      </div>
+      <div class="pair" id="pairBox" hidden>
+        <div>
+          <div class="pair-head"><span class="section-label">Chave pública · compartilhar</span><button class="text-action" data-copy="pub" type="button">Copiar</button></div>
+          <textarea id="pub" class="mono" readonly></textarea>
+        </div>
+        <div>
+          <div class="pair-head"><span class="section-label private-label">Chave privada · manter em segredo</span><button class="text-action" data-copy="priv" type="button">Copiar</button></div>
+          <textarea id="priv" class="mono" readonly></textarea>
+        </div>
+      </div>
+      <p class="hint">As chaves são geradas neste navegador. Salve a chave privada em local seguro; ela não poderá ser recuperada se for perdida.</p>
+    </div>
+    <div class="security-note" id="securityNote"><strong>Privacidade:</strong> o processamento é feito localmente. O conteúdo e as chaves não são enviados a um servidor por esta página.<br><strong>Formato:</strong> esta versão utiliza o padrão CIFRA3 e não abre conteúdos AES gerados por versões anteriores.</div>
+  </section>
+
+
+  <div class="actions">
+    <button class="btn primary" id="copy" type="button" disabled>Copiar resultado</button>
+    <button class="btn" id="swap" type="button" disabled>Usar resultado como entrada</button>
+    <button class="btn subtle" id="clear" type="button">Limpar texto</button>
+  </div>
+  <footer>
+    <span>Funciona no navegador, sem conta e sem envio de mensagens.</span>
+    <span>Para proteção real, utilize AES-256-GCM ou RSA híbrido.</span>
+  </footer>
+</main>
+
+<script>
+'use strict';
+const enc = new TextEncoder();
+const dec = new TextDecoder('utf-8', { fatal: true });
+const $ = id => document.getElementById(id);
+const rnd = n => crypto.getRandomValues(new Uint8Array(n));
+const cat = (...parts) => {
+  const out = new Uint8Array(parts.reduce((size, part) => size + part.length, 0));
+  let offset = 0;
+  for (const part of parts) { out.set(part, offset); offset += part.length; }
+  return out;
+};
+const b64 = bytes => {
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 8192) binary += String.fromCharCode(...bytes.subarray(i, i + 8192));
+  return btoa(binary);
+};
+const unb64 = value => {
+  try {
+    const normalized = value.replace(/\s+/g, '');
+    if (!normalized || !/^[A-Za-z0-9+/]*={0,2}$/.test(normalized)) throw new Error();
+    return Uint8Array.from(atob(normalized), char => char.charCodeAt(0));
+  } catch { throw new Error('Texto Base64 inválido.'); }
+};
+const hex = bytes => [...bytes].map(byte => byte.toString(16).padStart(2, '0')).join('');
+const unhex = value => {
+  const normalized = value.replace(/\s+/g, '');
+  if (!/^(?:[0-9a-f]{2})+$/i.test(normalized)) throw new Error('Hexadecimal inválido.');
+  return Uint8Array.from(normalized.match(/../g), pair => parseInt(pair, 16));
+};
+const utf8 = bytes => {
+  try { return dec.decode(bytes); }
+  catch { throw new Error('Não foi possível ler o resultado como texto UTF-8.'); }
+};
+const BAD = 'Senha incorreta ou texto alterado.';
+const KDF_ITERATIONS = new Set([600000, 1200000, 2000000]);
+const AES_MAGIC = enc.encode('CIFRA3');
+
+function writeU32(value) {
+  return Uint8Array.of((value >>> 24) & 255, (value >>> 16) & 255, (value >>> 8) & 255, value & 255);
+}
+function readU32(bytes, offset) {
+  return ((bytes[offset] * 0x1000000) + (bytes[offset + 1] << 16) + (bytes[offset + 2] << 8) + bytes[offset + 3]) >>> 0;
+}
+function startsWithBytes(bytes, prefix) {
+  return bytes.length >= prefix.length && prefix.every((value, index) => bytes[index] === value);
+}
+async function kdf(passphrase, salt, bytes, iterations) {
+  if (!KDF_ITERATIONS.has(iterations)) throw new Error('Perfil de derivação inválido ou não suportado.');
+  const material = await crypto.subtle.importKey('raw', enc.encode(passphrase), 'PBKDF2', false, ['deriveBits']);
+  const derived = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' }, material, bytes * 8
+  );
+  return new Uint8Array(derived);
+}
+const aesKey = (raw, algorithm, usage) => crypto.subtle.importKey('raw', raw, algorithm, false, [usage]);
+const RSA = { name: 'RSA-OAEP', hash: 'SHA-256' };
+
+function pemBody(input, label) {
+  const value = input.trim();
+  const begin = `-----BEGIN ${label}-----`;
+  const end = `-----END ${label}-----`;
+  let body = value;
+  if (value.includes('-----BEGIN') || value.includes('-----END')) {
+    if (!value.startsWith(begin) || !value.endsWith(end)) throw new Error(`Formato PEM inválido. Esperada uma chave ${label.toLowerCase()}.`);
+    body = value.slice(begin.length, -end.length);
+  }
+  if (!/^[A-Za-z0-9+/=\s]+$/.test(body)) throw new Error('A chave contém caracteres inválidos.');
+  return unb64(body);
+}
+const toPem = (bytes, label) => {
+  const lines = b64(bytes).match(/.{1,64}/g) || [];
+  return `-----BEGIN ${label}-----\n${lines.join('\n')}\n-----END ${label}-----`;
+};
+
+async function genPair(modulusLength) {
+  const keyPair = await crypto.subtle.generateKey(
+    { ...RSA, modulusLength, publicExponent: Uint8Array.of(1, 0, 1) }, true, ['encrypt', 'decrypt']
+  );
+  return {
+    pub: toPem(new Uint8Array(await crypto.subtle.exportKey('spki', keyPair.publicKey)), 'PUBLIC KEY'),
+    priv: toPem(new Uint8Array(await crypto.subtle.exportKey('pkcs8', keyPair.privateKey)), 'PRIVATE KEY')
+  };
+}
+
+function shift(text, offsetForLetter) {
+  let index = 0;
+  return text.replace(/[A-Za-z]/g, char => {
+    const base = char <= 'Z' ? 65 : 97;
+    const offset = offsetForLetter(index++);
+    return String.fromCharCode(((char.charCodeAt(0) - base + offset) % 26 + 26) % 26 + base);
+  });
+}
+const numericKey = value => {
+  if (!/^-?\d+$/.test(value.trim())) throw new Error('Informe um número inteiro como chave.');
+  const number = Number(value);
+  if (!Number.isSafeInteger(number)) throw new Error('O deslocamento informado é muito grande.');
+  return number;
+};
+const letterKey = value => {
+  const values = [...value.toUpperCase().replace(/[^A-Z]/g, '')].map(char => char.charCodeAt(0) - 65);
+  if (!values.length) throw new Error('A chave precisa ter ao menos uma letra de A a Z.');
+  return values;
+};
+const xor = (bytes, key) => {
+  const keyBytes = enc.encode(key);
+  if (!keyBytes.length) throw new Error('Informe uma chave não vazia.');
+  return bytes.map((byte, index) => byte ^ keyBytes[index % keyBytes.length]);
+};
+const atbash = text => text.replace(/[A-Za-z]/g, char => {
+  const base = char <= 'Z' ? 65 : 97;
+  return String.fromCharCode(base + 25 - (char.charCodeAt(0) - base));
+});
+
+const T = {
+  aes: {
+    group: 'secure', name: 'AES-256-GCM', level: 3, kind: 'pass', keyLabel: 'Senha',
+    about: 'Padrão moderno de criptografia simétrica com autenticação integrada. Alterações no conteúdo cifrado são detectadas durante a descriptografia.',
+    how: 'A senha passa por derivação com PBKDF2-HMAC-SHA-256 para produzir uma chave AES de 256 bits. Um salt e um vetor de inicialização aleatórios são criados a cada operação; o perfil de iterações é registrado no resultado.',
+    use: 'Melhor opção para proteger textos com uma senha. Use uma senha longa e exclusiva.',
+    async E(text, passphrase) {
+      const iterations = Number($('kdfProfile').value);
+      if (!KDF_ITERATIONS.has(iterations)) throw new Error('Selecione um perfil de derivação válido.');
+      const salt = rnd(16), iv = rnd(12);
+      const key = await aesKey(await kdf(passphrase, salt, 32, iterations), 'AES-GCM', 'encrypt');
+      const header = cat(AES_MAGIC, writeU32(iterations), salt, iv);
+      const encrypted = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: header }, key, enc.encode(text)));
+      return b64(cat(header, encrypted));
+    },
+    async D(text, passphrase) {
+      const bytes = unb64(text);
+      if (!startsWithBytes(bytes, AES_MAGIC)) {
+        throw new Error('Formato não reconhecido. Esta versão aceita somente textos gerados no formato atual (CIFRA3).');
+      }
+      const headerLength = AES_MAGIC.length + 4 + 16 + 12;
+      if (bytes.length < headerLength + 16) throw new Error('Texto cifrado incompleto.');
+      const iterations = readU32(bytes, AES_MAGIC.length);
+      if (!KDF_ITERATIONS.has(iterations)) throw new Error('Perfil de derivação desconhecido. O conteúdo não será processado.');
+      const saltStart = AES_MAGIC.length + 4;
+      const salt = bytes.slice(saltStart, saltStart + 16);
+      const iv = bytes.slice(saltStart + 16, saltStart + 28);
+      const header = bytes.slice(0, headerLength);
+      const encrypted = bytes.slice(headerLength);
+      const key = await aesKey(await kdf(passphrase, salt, 32, iterations), 'AES-GCM', 'decrypt');
+      let plain;
+      try {
+        plain = new Uint8Array(await crypto.subtle.decrypt(
+          { name: 'AES-GCM', iv, additionalData: header }, key, encrypted
+        ));
+      } catch { throw new Error(BAD); }
+      return utf8(plain);
+    }
+  },
+  rsa: {
+    group: 'secure', name: 'RSA-OAEP + AES-256-GCM (híbrido)', level: 3, kind: 'pem',
+    about: 'Criptografia assimétrica: qualquer pessoa com a chave pública pode cifrar uma mensagem, mas somente a chave privada correspondente pode abri-la.',
+    how: 'RSA-OAEP com SHA-256 protege uma chave AES-256 aleatória. Essa chave AES-GCM cifra o texto, permitindo mensagens maiores do que o limite direto do RSA.',
+    use: 'Para trocar mensagens sem compartilhar uma senha. Gere o par, compartilhe apenas a chave pública e mantenha a chave privada protegida.',
+    async E(text, keyText) {
+      let publicKey;
+      try { publicKey = await crypto.subtle.importKey('spki', pemBody(keyText, 'PUBLIC KEY'), RSA, false, ['encrypt']); }
+      catch { throw new Error('Chave pública inválida ou incompatível.'); }
+      const contentKey = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt']);
+      const iv = rnd(12);
+      const encrypted = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, contentKey, enc.encode(text)));
+      const wrappedKey = new Uint8Array(await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, publicKey, await crypto.subtle.exportKey('raw', contentKey)));
+      return b64(cat(Uint8Array.of(wrappedKey.length >> 8, wrappedKey.length & 255), wrappedKey, iv, encrypted));
+    },
+    async D(text, keyText) {
+      let privateKey;
+      try { privateKey = await crypto.subtle.importKey('pkcs8', pemBody(keyText, 'PRIVATE KEY'), RSA, false, ['decrypt']); }
+      catch { throw new Error('Chave privada inválida ou incompatível.'); }
+      const bytes = unb64(text);
+      if (bytes.length < 2) throw new Error('Texto cifrado incompleto.');
+      const wrappedLength = (bytes[0] << 8) | bytes[1];
+      if (wrappedLength < 256 || wrappedLength > 1024 || bytes.length < 2 + wrappedLength + 28) throw new Error('Texto cifrado incompleto ou inválido.');
+      try {
+        const rawKey = await crypto.subtle.decrypt({ name: 'RSA-OAEP' }, privateKey, bytes.slice(2, 2 + wrappedLength));
+        const contentKey = await aesKey(rawKey, 'AES-GCM', 'decrypt');
+        const ivStart = 2 + wrappedLength;
+        const plain = await crypto.subtle.decrypt(
+          { name: 'AES-GCM', iv: bytes.slice(ivStart, ivStart + 12) }, contentKey, bytes.slice(ivStart + 12)
+        );
+        return utf8(new Uint8Array(plain));
+      } catch { throw new Error('Chave privada incorreta ou texto alterado.'); }
+    }
+  },
+  vigenere: {
+    group: 'classic', name: 'Cifra de Vigenère', level: 1, kind: 'text', keyLabel: 'Palavra-chave', hint: 'Somente letras de A a Z da chave são consideradas.',
+    about: 'Cifra clássica que aplica deslocamentos diferentes às letras, de acordo com uma palavra-chave repetida.',
+    how: 'Cada letra da chave determina o deslocamento aplicado à próxima letra do texto. É vulnerável a técnicas de análise estatística.',
+    use: 'Estudo de criptografia clássica. Não protege informações confidenciais.',
+    E: (text, key) => { const values = letterKey(key); return shift(text, i => values[i % values.length]); },
+    D: (text, key) => { const values = letterKey(key); return shift(text, i => -values[i % values.length]); }
+  },
+  xor: {
+    group: 'classic', name: 'XOR com chave repetida', level: 1, kind: 'text', keyLabel: 'Chave', hint: 'Aceita texto; o resultado é representado em hexadecimal.',
+    about: 'Combina os bytes do texto com os bytes de uma chave repetida. A operação XOR é reversível, mas a repetição da chave torna o método fraco.',
+    how: 'Cada byte do texto é combinado com um byte da chave. Aplicar a mesma operação novamente recupera o texto original.',
+    use: 'Demonstrações didáticas. Não use para proteger dados reais.',
+    E: (text, key) => hex(xor(enc.encode(text), key)),
+    D: (text, key) => utf8(xor(unhex(text), key))
+  },
+  caesar: {
+    group: 'classic', name: 'Cifra de César', level: 0, kind: 'num', keyLabel: 'Deslocamento', def: '3', hint: 'Informe um número inteiro. Use o mesmo valor para descriptografar.',
+    about: 'Cifra de substituição atribuída a Júlio César, que desloca as letras por uma quantidade fixa de posições.',
+    how: 'Com deslocamento 3, A se torna D, B se torna E e assim por diante. Existem poucas combinações possíveis.',
+    use: 'Apenas para aprender ou brincar. Não oferece proteção real.',
+    E: (text, key) => shift(text, () => numericKey(key)),
+    D: (text, key) => shift(text, () => -numericKey(key))
+  },
+  atbash: {
+    group: 'classic', name: 'Atbash', level: 0,
+    about: 'Cifra de substituição que espelha o alfabeto: A vira Z, B vira Y e assim por diante.',
+    how: 'Não utiliza chave. Aplicar a transformação duas vezes recupera o texto original.',
+    use: 'Curiosidade histórica e quebra-cabeças.', E: atbash, D: atbash
+  },
+  rot13: {
+    group: 'classic', name: 'ROT13', level: 0,
+    about: 'Variação da cifra de César com deslocamento fixo de 13 posições.',
+    how: 'Como o alfabeto tem 26 letras, aplicar ROT13 duas vezes recupera o texto original.',
+    use: 'Esconder spoilers em textos informais, nunca segredos.',
+    E: text => shift(text, () => 13), D: text => shift(text, () => 13)
+  },
+  base64: {
+    group: 'classic', name: 'Base64 (codificação)', level: 0,
+    about: 'Não é criptografia. É uma codificação que representa bytes como caracteres imprimíveis e pode ser revertida sem chave.',
+    how: 'Agrupa os bytes em blocos de 6 bits e os representa usando 64 caracteres.',
+    use: 'Transportar dados em formatos textuais, como JSON e e-mail. Não use para ocultar informações.',
+    E: text => b64(enc.encode(text)), D: text => utf8(unb64(text))
+  }
+};
+
+const LEVEL = { 3: 'Forte', 1: 'Fraca', 0: 'Nenhuma' };
+const GROUPS = { secure: 'Criptografia recomendada', classic: 'Cifras clássicas e codificações (inseguras)' };
+for (const group of Object.keys(GROUPS)) {
+  const optgroup = document.createElement('optgroup');
+  optgroup.label = GROUPS[group];
+  for (const id of Object.keys(T)) if (T[id].group === group) optgroup.append(new Option(T[id].name, id));
+  $('type').append(optgroup);
+}
+
+let mode = 'E';
+let timer = null;
+let sequence = 0;
+let lastKind = null;
+const pemState = { E: '', D: '' };
+
+function passphraseHint(value) {
+  if (!value) return 'Use uma frase-senha longa e exclusiva; evite reutilizar senhas.';
+  if (value.length < 12) return 'Senha curta. Prefira uma frase-senha com pelo menos 16 caracteres.';
+  if (value.length < 16) return 'Tamanho razoável. Uma frase mais longa oferece margem maior.';
+  return 'Boa extensão. A qualidade também depende de ser imprevisível e exclusiva.';
+}
+function updateHint() {
+  const method = T[$('type').value];
+  $('keyHint').textContent = method.kind === 'pass'
+    ? (mode === 'E' ? passphraseHint($('key').value) : 'Informe a mesma senha usada para criptografar.')
+    : (method.hint || '');
+}
+function updateLabels() {
+  const method = T[$('type').value];
+  if (method.kind === 'pem') {
+    $('pemLabel').textContent = mode === 'E' ? 'Chave pública do destinatário' : 'Sua chave privada';
+    $('pem').placeholder = mode === 'E' ? '-----BEGIN PUBLIC KEY-----' : '-----BEGIN PRIVATE KEY-----';
+    $('pem').value = pemState[mode];
+  } else if (method.keyLabel) $('keyLabel').textContent = method.keyLabel;
+  updateHint();
+}
+function showResult(value, isError = false, isPending = false) {
+  $('out').textContent = value;
+  $('out').classList.toggle('err', isError);
+  $('out').classList.toggle('pending', isPending);
+  const available = Boolean(value) && !isError && !isPending;
+  $('copy').disabled = !available;
+  $('swap').disabled = !available;
+}
+function syncMethod() {
+  const method = T[$('type').value];
+  $('name').textContent = method.name;
+  $('lvl').textContent = LEVEL[method.level];
+  $('bars').className = `bars${method.level === 1 ? ' weak' : ''}`;
+  [...$('bars').children].forEach((bar, index) => bar.classList.toggle('on', index < method.level));
+  for (const field of ['about', 'how', 'use']) $(field).textContent = method[field] || '';
+  $('keyBox').hidden = !method.kind || method.kind === 'pem';
+  $('pemBox').hidden = method.kind !== 'pem';
+  $('kdfBox').hidden = $('type').value !== 'aes';
+  $('kdfProfileBox').hidden = mode !== 'E';
+  if (method.kind !== lastKind && method.kind !== 'pem') $('key').value = method.def || '';
+  lastKind = method.kind;
+  $('eye').hidden = method.kind !== 'pass';
+  $('gen').hidden = method.kind !== 'pass';
+  $('key').type = method.kind === 'pass' ? 'password' : 'text';
+  $('eye').textContent = 'Mostrar';
+  $('key').inputMode = method.kind === 'num' ? 'numeric' : 'text';
+  updateLabels();
+  run();
+}
+async function run() {
+  const current = ++sequence;
+  const method = T[$('type').value];
+  const input = $('inp').value;
+  $('status').textContent = '';
+  if (!input) { showResult(''); return; }
+  try {
+    const key = method.kind === 'pem' ? $('pem').value.trim() : $('key').value;
+    if (method.kind && !key) throw new Error(method.kind === 'pem' ? 'Cole ou gere a chave para continuar.' : 'Informe a chave para continuar.');
+    showResult('Processando…', false, true);
+    const result = await method[mode](input, key);
+    if (current === sequence) showResult(result);
+  } catch (error) {
+    if (current === sequence) showResult(error.message || 'Não foi possível processar o texto.', true);
+  }
+}
+const scheduleRun = () => { clearTimeout(timer); timer = setTimeout(run, 280); };
+function setMode(nextMode) {
+  mode = nextMode;
+  $('mE').setAttribute('aria-pressed', String(mode === 'E'));
+  $('mD').setAttribute('aria-pressed', String(mode === 'D'));
+  $('kdfBox').hidden = $('type').value !== 'aes';
+  $('kdfProfileBox').hidden = mode !== 'E';
+  updateLabels();
+  run();
+}
+async function copyText(value, button) {
+  if (!value) return;
+  const original = button.textContent;
+  try {
+    if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(value);
+    else {
+      const temporary = document.createElement('textarea');
+      temporary.value = value;
+      temporary.setAttribute('readonly', '');
+      temporary.style.position = 'fixed';
+      temporary.style.opacity = '0';
+      document.body.append(temporary);
+      temporary.select();
+      const copied = document.execCommand('copy');
+      temporary.remove();
+      if (!copied) throw new Error('Cópia indisponível');
+    }
+    button.textContent = 'Copiado';
+  } catch {
+    button.textContent = 'Selecione e copie';
+  }
+  window.setTimeout(() => { button.textContent = original; }, 1600);
+}
+
+$('type').addEventListener('change', syncMethod);
+$('inp').addEventListener('input', scheduleRun);
+$('key').addEventListener('input', () => { updateHint(); scheduleRun(); });
+$('pem').addEventListener('input', () => { pemState[mode] = $('pem').value; scheduleRun(); });
+$('kdfProfile').addEventListener('change', scheduleRun);
+$('mE').addEventListener('click', () => setMode('E'));
+$('mD').addEventListener('click', () => setMode('D'));
+$('eye').addEventListener('click', () => {
+  const reveal = $('key').type === 'password';
+  $('key').type = reveal ? 'text' : 'password';
+  $('eye').textContent = reveal ? 'Ocultar' : 'Mostrar';
+});
+$('gen').addEventListener('click', () => {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+  $('key').value = Array.from(rnd(32), byte => alphabet[byte & 63]).join('');
+  $('key').type = 'text';
+  $('eye').textContent = 'Ocultar';
+  updateHint();
+  run();
+});
+$('mk').addEventListener('click', async () => {
+  const button = $('mk');
+  const originalText = button.textContent;
+  button.disabled = true;
+  button.textContent = 'Gerando chaves…';
+  $('status').textContent = 'A geração de chaves pode levar alguns instantes.';
+  try {
+    const generated = await genPair(Number($('rsaSize').value));
+    $('pub').value = pemState.E = generated.pub;
+    $('priv').value = pemState.D = generated.priv;
+    $('pairBox').hidden = false;
+    $('pem').value = pemState[mode];
+    $('status').textContent = 'Par de chaves gerado. Guarde a chave privada em local seguro.';
+    run();
+  } catch (error) {
+    $('status').textContent = error.message || 'Não foi possível gerar as chaves neste navegador.';
+  } finally {
+    button.disabled = false;
+    button.textContent = originalText === 'Gerar par de chaves' ? 'Gerar novo par de chaves' : originalText;
+  }
+});
+document.querySelectorAll('[data-copy]').forEach(button => {
+  button.addEventListener('click', () => copyText($(button.dataset.copy).value, button));
+});
+$('copy').addEventListener('click', () => copyText($('out').textContent, $('copy')));
+$('swap').addEventListener('click', () => {
+  $('inp').value = $('out').textContent;
+  setMode(mode === 'E' ? 'D' : 'E');
+  $('inp').focus();
+});
+$('clear').addEventListener('click', () => {
+  $('inp').value = '';
+  showResult('');
+  $('status').textContent = '';
+  $('inp').focus();
+});
+$('themeToggle').addEventListener('click', () => {
+  const currentTheme = document.documentElement.dataset.theme;
+  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const nextTheme = currentTheme ? (currentTheme === 'dark' ? 'light' : 'dark') : (prefersDark ? 'light' : 'dark');
+  document.documentElement.dataset.theme = nextTheme;
+  $('themeToggle').textContent = nextTheme === 'dark' ? 'Tema claro' : 'Tema escuro';
+});
+
+if (!window.crypto || !crypto.subtle || !window.TextEncoder) {
+  $('status').textContent = 'Este navegador não oferece suporte à Web Crypto. Abra a página em um navegador atualizado e em contexto seguro (HTTPS ou localhost).';
+  $('mE').disabled = $('mD').disabled = $('mk').disabled = $('gen').disabled = true;
+}
+syncMethod();
+</script>
+</body>
+</html>
